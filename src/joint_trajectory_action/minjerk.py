@@ -214,13 +214,13 @@ def _minjerk_trajectory_point(m_coeff, t):
         current position in k dimensions
             numpy.array of size 1 by k
     """
-    a0 = m_coeff[:,0]
-    a1 = m_coeff[:,1]
-    a2 = m_coeff[:,2]
-    a3 = m_coeff[:,3]
-    a4 = m_coeff[:,4]
-    a5 = m_coeff[:,5]
-    tm = m_coeff[:,6]
+    a0 = m_coeff[0, 0]
+    a1 = m_coeff[0, 1]
+    a2 = m_coeff[0, 2]
+    a3 = m_coeff[0, 3]
+    a4 = m_coeff[0, 4]
+    a5 = m_coeff[0, 5]
+    tm = m_coeff[0, 6]
 
     t = t * tm # input t is percentage of time elapsed for this segment, tm is the duration of this segment and to calculate x, v, a , t is the time[s] elapsed for this segment
 
@@ -232,7 +232,7 @@ def _minjerk_trajectory_point(m_coeff, t):
     # a=2*a2+6*a3*t+12*a4*t*t+20*a5*t*t*t;
     a=2*a2+6*a3*t+12*a4*np.power(t,2)+20*a5*np.power(t,3);
 
-    return x
+    return x, v, a
 
 def minjerk_point(m_coeffs, m_index, t):
     """

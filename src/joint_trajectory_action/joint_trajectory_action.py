@@ -268,7 +268,7 @@ class JointTrajectoryActionServer(object):
             return False
         velocities = []
         deltas = self._get_current_error(joint_names, point.positions)
-        for delta in deltas:
+        for i, delta in enumerate(deltas):
             if ((math.fabs(delta[1]) >= self._path_thresh[delta[0]]
                 and self._path_thresh[delta[0]] >= 0.0)) or not self.robot_is_enabled():
                 rospy.logerr("%s: Exceeded Error Threshold on %s: %s" %
@@ -278,7 +278,7 @@ class JointTrajectoryActionServer(object):
                 self._command_stop(joint_names, self._limb.joint_angles(), start_time, dimensions_dict)
                 return False
             if self._mode == 'velocity':
-                velocities.append(self._pid[delta[0]].compute_output(delta[1]))
+                velocities.append(0.5 * point.velocities[i] + 2.0 * delta[1])
         if ((self._mode == 'position' or self._mode == 'position_w_id')
               and self._alive):
             cmd = dict(zip(joint_names, point.positions))
