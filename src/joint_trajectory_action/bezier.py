@@ -269,11 +269,20 @@ def _cubic_spline_point(b_coeff, t):
         current position in k dimensions
             numpy.array of size 1 by k
     """
-    return (pow((1-t), 3)*b_coeff[:, 0] +
-            3*pow((1-t), 2)*t*b_coeff[:, 1] +
-            3*(1-t)*pow(t, 2)*b_coeff[:, 2] +
-            pow(t, 3)*b_coeff[:, 3]
-            )
+    b0 = b_coeff[0, 0]
+    b1 = b_coeff[0, 1]
+    b2 = b_coeff[0, 2]
+    b3 = b_coeff[0, 3]
+    x = (np.power((1 - t), 3) * b0
+         + 3 * np.power((1 - t), 2) * t * b1
+         + 3 * (1 - t) * np.power(t, 2) * b2
+         + np.power(t, 3) * b3)
+    v = (3 * np.power((1 - t), 2) * (b1 - b0)
+         + 6 * t * (1 - t) * (b2 - b1)
+         + 3 * np.power(t, 2) * (b3 - b2))
+    a = (6 * (1 - t) * (b2 - 2 * b1 + b0)
+         + 6 * t * (b3 - 2 * b2 + b1))
+    return x, v, a
 
 
 def bezier_point(b_coeffs, b_index, t):
