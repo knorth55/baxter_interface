@@ -35,6 +35,7 @@ import operator
 import numpy as np
 
 import bezier
+import cubic_spline
 import minjerk
 
 import rospy
@@ -334,6 +335,50 @@ class JointTrajectoryActionServer(object):
             b_matrix[jnt, :, :, :] = bezier.bezier_coefficients(traj_array, d_pts)
         return b_matrix
 
+    def _get_cubic_spline_point(self, b_matrix, idx, t, cmd_time, dimensions_dict):
+        pnt = JointTrajectoryPoint()
+        pnt.time_from_start = rospy.Duration(cmd_time)
+        num_joints = b_matrix.shape[0]
+        pnt.positions = [0.0] * num_joints
+        if dimensions_dict['velocities']:
+            pnt.velocities = [0.0] * num_joints
+        if dimensions_dict['accelerations']:
+            pnt.accelerations = [0.0] * num_joints
+        for jnt in range(num_joints):
+            b_point = cubic_spline.cubic_spline_point(b_matrix[jnt, :, :, :], idx, t)
+            # Positions at specified time
+            pnt.positions[jnt] = b_point[0]
+            # Velocities at specified time
+            if dimensions_dict['velocities']:
+                pnt.velocities[jnt] = b_point[1]
+            # Accelerations at specified time
+            if dimensions_dict['accelerations']:
+                pnt.accelerations[jnt] = b_point[-1]
+        return pnt
+
+    def _compute_cubic_spline_coeff(self, joint_names, trajectory_points, point_duration, dimensions_dict):
+        # Compute Full cubic_spline Curve
+        # Compute Full Minimum Jerk Curve
+        num_joints = len(joint_names)
+        num_traj_pts = len(trajectory_points)
+        num_traj_dim = sum(dimensions_dict.values())
+        num_c_values = len(['c0', 'c1', 'c2', 'c3'])
+        c_matrix = np.zeros(
+            shape=(num_joints, num_traj_dim, num_traj_pts-1, num_c_values))
+        for jnt in xrange(num_joints):
+            traj_array = np.zeros(shape=(len(trajectory_points), num_traj_dim))
+            for idx, point in enumerate(trajectory_points):
+                current_point = list()
+                current_point.append(point.positions[jnt])
+                if dimensions_dict['velocities']:
+                    current_point.append(point.velocities[jnt])
+                if dimensions_dict['accelerations']:
+                    current_point.append(point.accelerations[jnt])
+                traj_array[idx, :] = current_point
+            c_matrix[jnt, :, :, :] = cubic_spline.cubic_spline_coefficients(
+                traj_array, point_duration)
+        return c_matrix
+
     def _get_minjerk_point(self, m_matrix, idx, t, cmd_time, dimensions_dict):
         pnt = JointTrajectoryPoint()
         pnt.time_from_start = rospy.Duration(cmd_time)
@@ -437,11 +482,17 @@ class JointTrajectoryActionServer(object):
                                                        trajectory_points,
                                                        point_duration,
                                                        dimensions_dict)
-            else:
+            elif self._interpolation == 'bezier':
                 # Compute Full Bezier Curve Coefficients for all 7 joints
                 b_matrix = self._compute_bezier_coeff(joint_names,
                                                       trajectory_points,
                                                       dimensions_dict)
+            else:
+                # Compute Full Cubic Spline Coefficients for all 7 joints
+                point_duration = [pnt_times[i+1] - pnt_times[i] for i in range(len(pnt_times)-1)]
+                c_matrix = self._compute_cubic_spline_coeff(
+                    joint_names, trajectory_points, point_duration, dimensions_dict)
+
         except Exception as ex:
             rospy.logerr(("{0}: Failed to compute a {1} trajectory for {2}"
                           " arm with error \"{3}: {4}\"").format(
@@ -485,10 +536,13 @@ class JointTrajectoryActionServer(object):
                 point = self._get_minjerk_point(m_matrix, idx,
                                                 t, cmd_time,
                                                 dimensions_dict)
-            else:
+            elif self._interpolation == 'bezier':
                 point = self._get_bezier_point(b_matrix, idx,
                                                t, cmd_time,
                                                dimensions_dict)
+            else:
+                point = self._get_cubic_spline_point(
+                    c_matrix, idx, t, cmd_time, dimensions_dict)
 
             # Command Joint Position, Velocity, Acceleration
             command_executed = self._command_joints(joint_names, point, start_time, dimensions_dict)
