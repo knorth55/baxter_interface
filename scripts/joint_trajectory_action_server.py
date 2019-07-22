@@ -61,12 +61,18 @@ def start_server(limb, rate, mode, interpolation):
     if mode == 'velocity':
         dyn_cfg_srv = Server(VelocityJointTrajectoryActionServerConfig,
                              lambda config, level: config)
+        dyn_cfg_srv.update_configuration(
+            VelocityJointTrajectoryActionServerConfig.defaults)
     elif mode == 'position':
         dyn_cfg_srv = Server(PositionJointTrajectoryActionServerConfig,
                              lambda config, level: config)
+        dyn_cfg_srv.update_configuration(
+            PositionJointTrajectoryActionServerConfig.defaults)
     else:
         dyn_cfg_srv = Server(PositionFFJointTrajectoryActionServerConfig,
                              lambda config, level: config)
+        dyn_cfg_srv.update_configuration(
+            PositionFFJointTrajectoryActionServerConfig.defaults)
     jtas = []
     if limb == 'both':
         jtas.append(JointTrajectoryActionServer('right', dyn_cfg_srv,
