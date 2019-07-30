@@ -196,6 +196,11 @@ class JointTrajectoryActionServer(object):
         error = map(operator.sub, set_point, current)
         return zip(joint_names, error)
 
+    def _get_current_velocities_error(self, joint_names, set_point):
+        current = self._get_current_velocities(joint_names)
+        error = map(operator.sub, set_point, current)
+        return zip(joint_names, error)
+
     def _update_feedback(self, cmd_point, jnt_names, cur_time):
         self._fdbk.header.stamp = rospy.Duration.from_sec(rospy.get_time())
         self._fdbk.joint_names = jnt_names
@@ -268,7 +273,8 @@ class JointTrajectoryActionServer(object):
             return False
         velocities = []
         deltas = self._get_current_error(joint_names, point.positions)
-        for i, delta in enumerate(deltas):
+        delta_vs = self._get_current_velocities_error(joint_names, point.velocities)
+        for i, (delta, delta_v) in enumerate(zip(deltas, delta_vs)):
             if ((math.fabs(delta[1]) >= self._path_thresh[delta[0]]
                 and self._path_thresh[delta[0]] >= 0.0)) or not self.robot_is_enabled():
                 rospy.logerr("%s: Exceeded Error Threshold on %s: %s" %
@@ -278,7 +284,7 @@ class JointTrajectoryActionServer(object):
                 self._command_stop(joint_names, self._limb.joint_angles(), start_time, dimensions_dict)
                 return False
             if self._mode == 'velocity':
-                velocities.append(0.5 * point.velocities[i] + 2.0 * delta[1])
+                velocities.append(point.velocities[i] + 0.5 * delta_v[1] + 4.0 * delta[1])
         if ((self._mode == 'position' or self._mode == 'position_w_id')
               and self._alive):
             cmd = dict(zip(joint_names, point.positions))
