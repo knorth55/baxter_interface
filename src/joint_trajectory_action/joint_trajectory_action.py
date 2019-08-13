@@ -284,7 +284,8 @@ class JointTrajectoryActionServer(object):
                 self._command_stop(joint_names, self._limb.joint_angles(), start_time, dimensions_dict)
                 return False
             if self._mode == 'velocity':
-                velocities.append(point.velocities[i] + 0.5 * delta_v[1] + 4.0 * delta[1])
+                # velocities.append(point.velocities[i] + 0.5 * delta_v[1] + 4.0 * delta[1])
+                velocities.append(0.5 * point.velocities[i] + 0.5 * delta_v[1] + 4.0 * delta[1])
         if ((self._mode == 'position' or self._mode == 'position_w_id')
               and self._alive):
             cmd = dict(zip(joint_names, point.positions))
