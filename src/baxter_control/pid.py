@@ -87,3 +87,18 @@ class PID(object):
         # sum the terms and return the result
         return ((self._kp * self._cp) + (self._ki * self._ci) +
                 (self._kd * self._cd))
+
+    def compute_output_with_velocity(self, error, v_error):
+        self._cur_time = rospy.get_time()  # get t
+        dt = self._cur_time - self._prev_time  # get delta t
+
+        self._cp = error  # proportional term
+        self._ci += error * dt  # integral term
+        self._cd = v_error  # derivative term
+
+        self._prev_time = self._cur_time  # save t for next pass
+        self._prev_err = error  # save t-1 error
+
+        # sum the terms and return the result
+        return ((self._kp * self._cp) + (self._ki * self._ci) +
+                (self._kd * self._cd))
