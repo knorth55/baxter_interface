@@ -280,10 +280,10 @@ class JointTrajectoryActionServer(object):
                 and self._path_thresh[delta[0]] >= 0.0)) or not self.robot_is_enabled():
                 rospy.logerr("%s: Exceeded Error Threshold on %s: %s" %
                              (self._action_name, delta[0], str(delta[1]),))
-                self._result.error_code = self._result.PATH_TOLERANCE_VIOLATED
-                self._server.set_aborted(self._result)
-                self._command_stop(joint_names, self._limb.joint_angles(), start_time, dimensions_dict)
-                return False
+            #     self._result.error_code = self._result.PATH_TOLERANCE_VIOLATED
+            #     self._server.set_aborted(self._result)
+            #     self._command_stop(joint_names, self._limb.joint_angles(), start_time, dimensions_dict)
+            #     return False
             if self._mode == 'velocity':
                 velocities.append(
                     self._pid[delta[0]].compute_output_with_velocity(delta[1], delta_vs[i][1]))
